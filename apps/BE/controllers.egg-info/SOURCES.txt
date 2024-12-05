@@ -1,0 +1,6 @@
+setup.py
+controllers/productsController.py
+controllers.egg-info/PKG-INFO
+controllers.egg-info/SOURCES.txt
+controllers.egg-info/dependency_links.txt
+controllers.egg-info/top_level.txt

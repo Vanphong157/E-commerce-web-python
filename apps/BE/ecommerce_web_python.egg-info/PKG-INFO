@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Name: ecommerce_web_python
+Version: 0.1.0
+Summary: An E-commerce web application built with Python
+Home-page: https://github.com/yourusername/ecommerce-web-python
+Author: Your Name
+Author-email: your_email@example.com
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
