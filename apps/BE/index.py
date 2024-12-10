@@ -1,25 +1,31 @@
-from pymongo import MongoClient
-from BE.controllers.productsController import productControllers
+from fastapi import FastAPI
+from BE.controllers.productsController import ProductController
+from BE.database import mongodb
 
-def connect_to_mongodb(uri="mongodb://localhost:27017/", db_name="test"):
-    client = MongoClient(uri)
-    db = client[db_name]
-    print(f"Connected to database: {db_name}")
-    return db
+app = FastAPI()
 
-def main():
-    db = connect_to_mongodb()
-    collection = db["products"]
-    
-    collection.insert_one({"name": "Alice", "age": 25})
-    print("Document inserted.")
-    
-    print("Documents in the collection:")
-    for doc in collection.find():
-        print(doc)
-    
-    print("Closing connection...")
-    db.client.close()
+@app.on_event("startup")
+async def startup_event():
+    print("Starting application...")
 
-if __name__ == "__main__":
-    main()
+@app.on_event("shutdown")
+async def shutdown_event():
+    await mongodb.close_connection()
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the MongoDB FastAPI example"}
+
+@app.get("/products")
+async def get_products():
+    """
+    API endpoint to get all products
+    """
+    return await ProductController.get_products()
+
+@app.post("/products")
+async def add_product(product: dict):
+    """
+    API endpoint to add a new product
+    """
+    return await ProductController.add_product(product)
