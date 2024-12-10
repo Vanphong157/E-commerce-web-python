@@ -8,4 +8,4 @@ class Products:
 
       
     def main(self):
-        print(1)
+        print("hello")

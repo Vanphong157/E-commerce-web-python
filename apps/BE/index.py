@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-import productControllers 
+from BE.controllers.productsController import productControllers
 
 def connect_to_mongodb(uri="mongodb://localhost:27017/", db_name="test"):
     client = MongoClient(uri)
@@ -23,4 +23,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    productControllers.main()
