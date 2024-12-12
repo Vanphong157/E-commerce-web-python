@@ -1,11 +1,12 @@
 class Products: 
-    def __init__(self, id, name, price, category_id, description, inStock):
+    def __init__(self, id, name, price, category_id, description, inStock, image):
         self._id = id
         self.name = name
         self.price = price
         self.category_id = category_id
         self.description = description
         self.inStock = inStock
+        self.image = image
     @property
     def id(self):
         return self._id
@@ -54,3 +55,11 @@ class Products:
         if not isinstance(value, bool):
             raise ValueError("inStock must be a boolean")
         self._inStock = value
+
+    @property
+    def image(self):
+        return self._image
+
+    @description.setter
+    def description(self, value):
+        self._image = value
