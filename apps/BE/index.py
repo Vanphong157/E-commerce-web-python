@@ -29,3 +29,17 @@ async def add_product(product: dict):
     API endpoint to add a new product
     """
     return await ProductController.add_product(product)
+
+@app.put("/products/{product_id}")
+async def update_product(product_id: str, updated_data: dict):
+    """
+    API endpoint to update a product
+    """
+    return await ProductController.update_product(product_id, updated_data)
+
+@app.delete("/products/{product_id}")
+async def delete_product(product_id: str):
+    """
+    API endpoint to delete a product
+    """
+    return await ProductController.delete_product(product_id)
