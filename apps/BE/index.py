@@ -1,7 +1,8 @@
-from fastapi import Depends, FastAPI
+from bson import ObjectId
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from BE.controllers.categoriesController import CategoryController
-from BE.controllers.loginController import UserController
+from BE.controllers.userController import UserController, SessionManager
 from BE.controllers.productsController import ProductController
 from BE.database import mongodb
 
@@ -75,16 +76,29 @@ async def delete_category(category_id: str):
     """
     return await CategoryController.delete_category(category_id)
 
-@app.post("/signup")
-async def signup(user_data: dict):
-    """
-    Signup a new user.
-    """
-    return await UserController.signup(user_data)
-
 @app.post("/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(user_data: dict, request: Request, response: Response):
     """
-    Login a user and return a JWT token.
+    Login và lưu session vào database.
     """
-    return await UserController.login(form_data.username, form_data.password)
+    return await UserController.login(user_data["username"], user_data["password"], request, response)
+
+@app.post("/logout")
+async def logout(request: Request):
+    """
+    Logout và xóa session khỏi database.
+    """
+    return await UserController.logout(request)
+
+@app.get("/user")
+async def get_user(request: Request):
+    """
+    Lấy thông tin người dùng hiện tại từ session.
+    """
+    session = await SessionManager.get_session(request)
+    user = await mongodb.db["users"].find_one({"_id": ObjectId(session["user_id"])})
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    print(f"user: {user}")
+    return {"username": user["username"], "role": user["role"]}
