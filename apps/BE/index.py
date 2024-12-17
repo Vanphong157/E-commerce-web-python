@@ -234,3 +234,46 @@ async def get_checkout_status(checkout_id: str):
     API endpoint để kiểm tra trạng thái checkout
     """
     return await CheckoutController.get_checkout_status(checkout_id)
+
+@app.get("/products/{product_id}")
+async def get_product(product_id: str):
+    """
+    API endpoint to get a product by ID
+    """
+    return await ProductController.get_product_by_id(product_id)
+
+@app.post("/auth/register")
+async def register(user_data: dict = Body(...)):
+    return await AuthController.register(user_data)
+
+@app.post("/auth/login")
+async def login(credentials: dict = Body(...)):
+    return await AuthController.login(credentials)
+
+@app.get("/users/{user_id}")
+async def get_user(user_id: str):
+    """
+    API endpoint để lấy thông tin user
+    """
+    return await UserController.get_user(user_id)
+
+@app.put("/users/{user_id}")
+async def update_user(user_id: str, user_data: dict = Body(...)):
+    """
+    API endpoint để cập nhật thông tin user
+    """
+    return await UserController.update_user(user_id, user_data)
+
+@app.put("/users/{user_id}/password")
+async def change_password(user_id: str, password_data: dict = Body(...)):
+    """
+    API endpoint để đổi mật khẩu
+    """
+    return await UserController.change_password(user_id, password_data)
+
+@app.put("/users/{user_id}/avatar")
+async def update_avatar(user_id: str, avatar_data: dict = Body(...)):
+    """
+    API endpoint để cập nhật avatar
+    """
+    return await UserController.update_avatar(user_id, avatar_data["avatar_url"])
