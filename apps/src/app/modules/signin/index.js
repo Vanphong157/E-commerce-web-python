@@ -2,36 +2,44 @@
 import React, { useState } from "react";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { Button, Col, Input, Row, Typography, Avatar, Checkbox } from "antd";
+import { useRouter } from "next/navigation";
 const { Title } = Typography;
 
-const inputFieldArray = [
-  {
-    name: "username",
-    placeholder: "Tài khoản",
-    className: "form-field",
-    prefix: <UserOutlined />,
-    rules: [
-      {
-        required: true,
-        message: "Trường này không được bỏ trống",
-      },
-    ],
-  },
-  {
-    name: "password",
-    placeholder: "Mật khẩu",
-    className: "form-field",
-    prefix: <LockOutlined />,
-    rules: [
-      {
-        required: true,
-        message: "Trường này không được bỏ trống",
-      },
-    ],
-  },
-];
 const SigninContent = () => {
+  const router = useRouter();
+  const isAuth = localStorage.getItem("session_id");
+  if (isAuth) {
+    router.push("/");
+  }
+  const [formData, setFormData] = useState({
+    username: "",
+    password: "",
+  });
+  const [loading, setLoading] = useState(false); // Trạng thái loading
   const [hover, setHover] = useState(false);
+
+  const formattedForm = JSON.stringify(formData, null, 2);
+
+  console.log(formattedForm);
+  // Hàm xử lý thay đổi input
+  const handleChange = (prop) => (event) => {
+    setFormData({ ...formData, [prop]: event.target.value });
+  };
+
+  const handleClick = async () => {
+    try {
+      const resp = await fetch("http://127.0.0.1:8000/login", {
+        method: "POST",
+        body: JSON.stringify(formData),
+      }).then((res) => res.json());
+      localStorage.setItem("session_id", resp.session_id);
+      alert("Thanfh cong");
+      router.push("/");
+    } catch (error) {
+      alert("Đăng nhập thất bại");
+      console.log(error);
+    }
+  };
   return (
     <>
       <Row style={{ justifyContent: "center" }}>
@@ -64,32 +72,28 @@ const SigninContent = () => {
             <Title style={{ fontWeight: 700 }}>Sign in</Title>
           </Row>
           <Row style={{ marginTop: 10, fontWeight: 700, fontSize: 14 }}>
-            {inputFieldArray.map((field) => (
-              <>
-                {/* <span>{field.title}</span> */}
-                <Row style={{ width: "100%" }}>
-                  <p>{field.placeholder}</p>
-                  <Input
-                    style={{ padding: 13, marginTop: 10, marginBottom: 10 }}
-                    key={field.name}
-                    {...field}
-                  />
-                </Row>
-              </>
-            ))}
-            {/* <span>Tài khoản:</span>
-
-            <Input
-              placeholder="Tên đăng nhập"
-              prefix={<UserOutlined />}
-              style={{ padding: 13, marginTop: 10, marginBottom: 10 }}
-            />
-            <span>Mật khẩu:</span>
-            <Input.Password
-              placeholder="Mật khẩu"
-              style={{ padding: 13, marginTop: 10 }}
-              prefix={<LockOutlined />}
-            /> */}
+            <Row style={{ width: "100%" }}>
+              <p>Tài khoản</p>
+              <Input
+                style={{ padding: 13, marginTop: 10, marginBottom: 10 }}
+                name="username" // Quan trọng: tên chính xác trùng key trong state
+                placeholder="Tài khoản"
+                prefix={<UserOutlined />}
+                value={formData.username}
+                onChange={handleChange("username")}
+              />
+            </Row>
+            <Row style={{ width: "100%" }}>
+              <p>Mật khẩu</p>
+              <Input.Password
+                style={{ padding: 13, marginTop: 10, marginBottom: 10 }}
+                name="password" // Quan trọng: tên chính xác trùng key trong state
+                placeholder="Mật khẩu"
+                prefix={<LockOutlined />}
+                value={formData.password}
+                onChange={handleChange("password")}
+              />
+            </Row>
           </Row>
           <Row style={{ marginTop: 10 }}>
             <Checkbox>Lưu đăng nhập</Checkbox>
@@ -120,6 +124,7 @@ const SigninContent = () => {
               }}
               onMouseOver={() => setHover(true)}
               onMouseOut={() => setHover(false)}
+              onClick={handleClick}
             >
               Đăng nhập
             </Button>

@@ -14,9 +14,16 @@ from BE.controllers.authController import AuthController
 
 app = FastAPI()
 
+
+app = FastAPI()
+
+origins = [
+    "http://localhost:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Thay đổi port nếu cần
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -42,24 +49,27 @@ async def get_products():
     return await ProductController.get_products()
 
 @app.post("/products")
-async def add_product(product: dict):
+async def add_product(product: dict, request: Request):
     """
-    API endpoint to add a new product
+    API endpoint để thêm sản phẩm mới (chỉ admin).
     """
+    await SessionManager.require_admin(request)
     return await ProductController.add_product(product)
 
 @app.put("/products/{product_id}")
-async def update_product(product_id: str, updated_data: dict):
+async def update_product(product_id: str, updated_data: dict, request: Request):
     """
-    API endpoint to update a product
+    API endpoint để cập nhật sản phẩm (chỉ admin).
     """
+    await SessionManager.require_admin(request)
     return await ProductController.update_product(product_id, updated_data)
 
 @app.delete("/products/{product_id}")
-async def delete_product(product_id: str):
+async def delete_product(product_id: str, request: Request):
     """
-    API endpoint to delete a product
+    API endpoint để xóa sản phẩm (chỉ admin).
     """
+    await SessionManager.require_admin(request)
     return await ProductController.delete_product(product_id)
 
 @app.get("/categories")
@@ -67,35 +77,51 @@ async def get_categories():
     """
     API endpoint to get all categories
     """
+    
     return await CategoryController.get_categories()
 
 @app.post("/categories")
-async def add_category(category: dict):
+async def add_category(category: dict, request: Request):
     """
     API endpoint to add a new category
     """
+    await SessionManager.require_admin(request)    
+
     return await CategoryController.add_category(category)
 
 @app.put("/categories/{category_id}")
-async def update_category(category_id: str, updated_data: dict):
+async def update_category(category_id: str, updated_data: dict, request: Request):
     """
     API endpoint to update a category
     """
+    await SessionManager.require_admin(request)
     return await CategoryController.update_category(category_id, updated_data)
 
 @app.delete("/categories/{category_id}")
-async def delete_category(category_id: str):
+async def delete_category(category_id: str, request: Request):
     """
     API endpoint to delete a category
     """
+    await SessionManager.require_admin(request)
     return await CategoryController.delete_category(category_id)
 
+@app.post("/signup")
+async def signup(user_data: dict):
+    """
+    API đăng ký người dùng.
+    """
+    return await UserController.signup(user_data)
+
 @app.post("/login")
-async def login(user_data: dict, request: Request, response: Response):
+async def login( request: Request, response: Response):
     """
     Login và lưu session vào database.
     """
-    return await UserController.login(user_data["username"], user_data["password"], request, response)
+    data = await request.json()
+    username =  data.get("username")
+    password = data.get("password")
+
+    return await UserController.login( username, password , response)
 
 @app.post("/logout")
 async def logout(request: Request):
@@ -116,7 +142,6 @@ async def get_user(request: Request):
         raise HTTPException(status_code=404, detail="User not found")
     print(f"user: {user}")
     return {"username": user["username"], "role": user["role"]}
-    return await UserController.login(form_data.username, form_data.password)
 
 @app.get("/orders")
 async def get_orders():
@@ -126,10 +151,11 @@ async def get_orders():
     return await OrderController.get_orders()
 
 @app.get("/orders/{order_id}")
-async def get_order(order_id: str):
+async def get_order(order_id: str, request: Request):
     """
     API endpoint để lấy chi tiết một đơn hàng
     """
+    await SessionManager.require_admin(request)
     return await OrderController.get_order_by_id(order_id)
 
 @app.post("/orders")
@@ -137,6 +163,7 @@ async def create_order(order_data: dict = Body(...)):
     """
     API endpoint để tạo đơn hàng mới
     """
+    await SessionManager.require_admin(request)
     return await OrderController.create_order(order_data)
 
 @app.put("/orders/{order_id}/status")
@@ -151,6 +178,7 @@ async def get_user_orders(user_id: str):
     """
     API endpoint để lấy danh sách đơn hàng của user
     """
+    
     return await OrderController.get_user_orders(user_id)
 
 @app.get("/cart/{user_id}")
