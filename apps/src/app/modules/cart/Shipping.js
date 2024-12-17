@@ -55,7 +55,38 @@ const Shipping = () => {
             <Input placeholder='Tỉnh / thàn phố' size='large' style={inputStyle}></Input>
             <Input placeholder='Phường / xã' size='large' style={inputStyle}></Input>
           </Col>
-         
+          <Col span={24}>
+            <Input placeholder='Số nhà / tên đường' size='large' style={inputStyle} ></Input>
+            <TextArea rows={4} style={{marginTop:"1rem", maxWidth:"98%"}} placeholder='Để lại lời nhắn cho chúng tôi'>
+            </TextArea>
+            <h2 className='text-xl font-medium mb-5 mt-5'>Chọn hình thức thanh toán</h2>
+            <div style={{ width: '100%', display: 'flex'}}>
+              <Button
+                size="large"
+                style={{ maxWidth: '48%', flex: 1, height: '3.5rem', display: 'flex', alignItems: 'center' }}
+                onClick={() => handleShippingSelection(true)}
+                className='mr-5'
+              >
+                <Image src={qrPic} style={{width:"1.5rem"}}/>
+                <h3 className="text-normal">Thanh toán băng QR</h3>
+              </Button>
+              <Button
+                size="large"
+                style={{ maxWidth: '48%', flex: 1, height: '3.5rem', display: 'flex', alignItems: 'center' }}
+                onClick={() => handleShippingSelection(false)}
+                
+              >
+                <Image src={homePic} style={{width:"1.5rem"}}/> 
+                <h3 className="text-normal">Thanh toán khi nhận hàng</h3>
+              </Button>
+            </div>
+            <div style={{width:"100%", display:"flex", marginTop:'1.5rem'}}>
+              <Button  size="large"
+                  style={{ maxWidth: '98%', flex: 1, height: '4rem', display: 'flex', alignItems: 'center', background:"red", color:"white" }}>
+                <h3 className="text-2xl font-bold">Thanh toán</h3>
+              </Button>
+            </div>
+          </Col>
         </Row>
       ) : (
         <Row>

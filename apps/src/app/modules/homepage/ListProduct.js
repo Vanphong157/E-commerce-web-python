@@ -1,11 +1,8 @@
 "use client";
-
-import { Col, Row, Spin } from 'antd';
-import React, { useState, useEffect } from 'react';
-import Product from './Product'; 
-import SaleProduct from './SaleProduct';
-import axios from 'axios';
-import Link from 'next/link';
+import { Col, Row } from "antd";
+import React from "react";
+import Product from "./Product";
+import SaleProduct from "./SaleProduct";
 
 const styles = {
   span: {
@@ -42,138 +39,115 @@ const styles = {
     borderBottom: isActive ? "2px solid #2A83E9" : "2px solid transparent",
     width: "calc(100% / 8)",
   }),
-  viewMoreButton: {
-    border: 0, 
-    color: "#2a83e9", 
-    fontSize: "14px", 
-    height: "36px", 
-    padding: "0 20px",
-    lineHeight: "36px",
-    backgroundColor: "#fff", 
-    borderRadius: '4px', 
-    display: 'block', 
-    margin: "5px auto 15px", 
-    fontWeight: 'bold', 
-    cursor: 'pointer'
-  },
-  sectionTitle: {
-    margin: 0, 
-    padding: "20px 40px 0 20px",
-    background: '#fff',
-    borderTopLeftRadius: '16px', 
-    borderTopRightRadius: '16px',
-  }
 };
 
 const ProductList = () => {
-  const [saleProducts, setSaleProducts] = useState([]);
-  const [recommendedProducts, setRecommendedProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState([]);
-  const [activeCategory, setActiveCategory] = useState(null);
+  const [saleProducts, setProduct] = React.useState([]); // State để lưu dữ liệu sản phẩm
+  const [loading, setLoading] = React.useState(true); // State để hiển thị loading
+  const [error, setError] = React.useState(null); // State để xử lý lỗi
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  React.useEffect(() => {
+    // Gọi API lấy danh sách sản phẩm
+    const fetchProducts = async () => {
+      try {
+        setLoading(true); // Bắt đầu loading
 
-  const fetchData = async () => {
-    try {
-      // Fetch categories
-      const categoriesResponse = await axios.get('http://127.0.0.1:8000/categories');
-      setCategories(categoriesResponse.data);
-      if (categoriesResponse.data.length > 0) {
-        setActiveCategory(categoriesResponse.data[0]._id);
+        const response = await fetch("http://127.0.0.1:8000/products", {
+          method: "GET",
+          credentials: "include",
+          mode: "no-cors",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setProduct(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // Fetch products
-      const productsResponse = await axios.get('http://127.0.0.1:8000/products');
-      const products = productsResponse.data;
-
-      // Lọc sản phẩm khuyến mãi (giả sử có trường discount > 0)
-      const onSale = products.filter(product => product.discount > 0).slice(0, 6);
-      setSaleProducts(onSale);
-
-      // Lấy sản phẩm gợi ý (có thể dựa vào rating hoặc random)
-      const recommended = products.sort(() => Math.random() - 0.5).slice(0, 6);
-      setRecommendedProducts(recommended);
-
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div style={{ textAlign: 'center', padding: '50px' }}>
-        <Spin size="large" />
-      </div>
-    );
-  }
+    fetchProducts();
+  }, []);
+  console.log(saleProducts);
 
   return (
     <div style={styles.container}>
       <h3 style={styles.span}>Khuyến mãi Online</h3>
       <ul style={styles.ul}>
-        {categories.map((category, index) => (
-          <li 
-            key={category._id} 
-            style={styles.li(category._id === activeCategory)}
-            onClick={() => setActiveCategory(category._id)}
-          >
-            <img 
-              style={styles.img} 
-              src={category.image || 'https://via.placeholder.com/150'} 
-              alt={category.name} 
-            />
-          </li>
-        ))}
+        <li style={styles.li(true)}>
+          <img
+            style={styles.img}
+            src="https://cdnv2.tgdd.vn/mwg-static/common/Campaign/a2/e9/a2e96842d59456f897836eea3d43eaee.png"
+            alt="Product 1"
+          />
+        </li>
+        <li style={styles.li(false)}>
+          <img
+            style={styles.img}
+            src="https://cdnv2.tgdd.vn/mwg-static/common/Campaign/a2/e9/a2e96842d59456f897836eea3d43eaee.png"
+            alt="Product 2"
+          />
+        </li>
       </ul>
-
-      <Row style={{ background: 'white', padding: '20px' }} gutter={[16, 16]}>
-        {saleProducts.map((product) => (
-          <Col span={4} key={product._id}>
-            <Link href={`/product/${product._id}`} style={{ textDecoration: 'none' }}>
-              <SaleProduct 
-                product={{
-                  imgUrl: product.image,
-                  title: product.name,
-                  price: product.price.toLocaleString('vi-VN') + 'đ',
-                  oldPrice: (product.price * (1 + product.discount/100)).toLocaleString('vi-VN') + 'đ',
-                  discount: `-${product.discount}%`,
-                  slotsLeft: product.quantity > 0 ? `Còn ${product.quantity}` : 'Hết hàng'
-                }} 
-              />
-            </Link>
+      <Row style={{ background: "white", padding: "20px" }} gutter={10}>
+        {saleProducts.map((product, index) => (
+          <Col span={4} key={index}>
+            <SaleProduct product={product} />
           </Col>
         ))}
       </Row>
-
-      <Link href="/all-products" style={styles.viewMoreButton}>
+      <a
+        style={{
+          border: 0,
+          color: "#2a83e9",
+          fontSize: "14px",
+          height: "36px",
+          padding: "0 20px",
+          lineHeight: "36px",
+          backgroundColor: "#fff",
+          borderRadius: "4px",
+          display: "block",
+          margin: "5px auto 15px",
+          fontWeight: "bold",
+          cursor: "pointer",
+        }}
+      >
         <span>Xem thêm sản phẩm</span>
-      </Link>
+      </a>
 
-      <div style={styles.sectionTitle}>
-        <h3 style={styles.span}>Gợi ý dành cho bạn</h3>
+      <div
+        style={{
+          margin: 0,
+          padding: "20px 40px 0 20px",
+          background: "#fff",
+          borderTopLeftRadius: "16px",
+          borderTopRightRadius: "16px",
+        }}
+      >
+        <h3
+          style={{
+            fontWeight: "700",
+            fontSize: "24px",
+            color: "#1d2939",
+            lineHeight: "32px",
+          }}
+        >
+          Gợi ý dành cho bạn
+        </h3>
       </div>
-         
-      <Row style={{ background: 'white', padding: '20px' }} gutter={[16, 16]}>
-        {recommendedProducts.map((product) => (
-          <Col span={4} key={product._id}>
-            <Link href={`/product/${product._id}`} style={{ textDecoration: 'none' }}>
-              <Product 
-                product={{
-                  imgUrl: product.image,
-                  title: product.name,
-                  price: product.price.toLocaleString('vi-VN') + 'đ',
-                  oldPrice: product.discount > 0 ? 
-                    (product.price * (1 + product.discount/100)).toLocaleString('vi-VN') + 'đ' : 
-                    null,
-                  discount: product.discount > 0 ? `-${product.discount}%` : null
-                }} 
-              />
-            </Link>
+
+      <Row style={{ background: "white", padding: "20px" }} gutter={10}>
+        {saleProducts.map((product, index) => (
+          <Col span={4} key={index}>
+            <Product product={product} />
           </Col>
         ))}
       </Row>
