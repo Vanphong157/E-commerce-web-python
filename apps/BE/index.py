@@ -14,9 +14,6 @@ from BE.controllers.authController import AuthController
 
 app = FastAPI()
 
-
-app = FastAPI()
-
 origins = [
     "http://localhost:3000",
 ]
@@ -27,6 +24,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 @app.on_event("startup")
@@ -49,28 +47,27 @@ async def get_products():
     return await ProductController.get_products()
 
 @app.post("/products")
-async def add_product(product: dict, request: Request):
+async def add_product(product: dict):
     """
-    API endpoint để thêm sản phẩm mới (chỉ admin).
+    API endpoint để thêm sản phẩm mới.
     """
-    await SessionManager.require_admin(request)
     return await ProductController.add_product(product)
 
 @app.put("/products/{product_id}")
-async def update_product(product_id: str, updated_data: dict, request: Request):
+async def update_product(product_id: str, updated_data: dict):
     """
-    API endpoint để cập nhật sản phẩm (chỉ admin).
+    API endpoint để cập nhật sản phẩm.
     """
-    await SessionManager.require_admin(request)
     return await ProductController.update_product(product_id, updated_data)
 
 @app.delete("/products/{product_id}")
-async def delete_product(product_id: str, request: Request):
+async def delete_product(product_id: str):
     """
-    API endpoint để xóa sản phẩm (chỉ admin).
+    API endpoint để xóa đơn hàng
     """
-    await SessionManager.require_admin(request)
     return await ProductController.delete_product(product_id)
+
+
 
 @app.get("/categories")
 async def get_categories():
@@ -81,28 +78,24 @@ async def get_categories():
     return await CategoryController.get_categories()
 
 @app.post("/categories")
-async def add_category(category: dict, request: Request):
+async def add_category(category: dict):
     """
     API endpoint to add a new category
     """
-    await SessionManager.require_admin(request)    
-
     return await CategoryController.add_category(category)
 
 @app.put("/categories/{category_id}")
-async def update_category(category_id: str, updated_data: dict, request: Request):
+async def update_category(category_id: str, updated_data: dict):
     """
     API endpoint to update a category
     """
-    await SessionManager.require_admin(request)
     return await CategoryController.update_category(category_id, updated_data)
 
 @app.delete("/categories/{category_id}")
-async def delete_category(category_id: str, request: Request):
+async def delete_category(category_id: str):
     """
     API endpoint to delete a category
     """
-    await SessionManager.require_admin(request)
     return await CategoryController.delete_category(category_id)
 
 @app.post("/signup")
@@ -130,47 +123,61 @@ async def logout(request: Request):
     """
     return await UserController.logout(request)
 
-@app.get("/user")
-async def get_user(request: Request):
+@app.get("/users")
+async def get_users():
     """
-    Lấy thông tin người dùng hiện tại từ session.
+    API endpoint để lấy danh sách tất cả user
     """
-    session = await SessionManager.get_session(request)
-    user = await mongodb.db["users"].find_one({"_id": ObjectId(session["user_id"])})
+    try:
+        users = []
+        cursor = mongodb.db["users"].find({}, {
+            "password": 0  # Không trả về password
+        })
+        async for user in cursor:
+            # Chuyển đổi ObjectId thành string
+            user["_id"] = str(user["_id"])
+            # Đảm bảo các trường cần thiết tồn tại
+            user_data = {
+                "_id": user["_id"],
+                "username": user.get("username", ""),
+                "email": user.get("email", ""),
+                "phone": user.get("phone", ""),
+                "role": user.get("role", "user"),
+                "created_at": user.get("created_at", None)
+            }
+            users.append(user_data)
+            
+        print("Users data:", users)  # Debug
+        return users
+    except Exception as e:
+        print("Error getting users:", str(e))
+        raise HTTPException(status_code=500, detail="Could not fetch users")
 
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    print(f"user: {user}")
-    return {"username": user["username"], "role": user["role"]}
-
-@app.get("/orders")
-async def get_orders():
-    """
-    API endpoint để lấy tất cả đơn hàng
-    """
-    return await OrderController.get_orders()
+@app.get("/orders/statistics")
+async def get_statistics():
+    return await OrderController.get_order_statistics()
 
 @app.get("/orders/{order_id}")
 async def get_order(order_id: str):
-    """
-    API endpoint để lấy chi tiết một đơn hàng
-    """
     return await OrderController.get_order_by_id(order_id)
+
+@app.put("/orders/{order_id}")
+async def update_order(order_id: str, status_data: dict):
+    """
+    API endpoint để cập nhật trạng thái đơn hàng
+    """
+    return await OrderController.update_order_status(order_id, status_data["status"])
+
+@app.get("/orders")
+async def get_orders():
+    return await OrderController.get_all_orders()
 
 @app.post("/orders")
 async def create_order(order_data: dict = Body(...)):
     """
     API endpoint để tạo đơn hàng mới
     """
-    await SessionManager.require_admin(request)
     return await OrderController.create_order(order_data)
-
-@app.put("/orders/{order_id}/status")
-async def update_order_status(order_id: str, status_data: dict = Body(...)):
-    """
-    API endpoint để cập nhật trạng thái đơn hàng
-    """
-    return await OrderController.update_order_status(order_id, status_data["status"])
 
 @app.get("/users/{user_id}/orders")
 async def get_user_orders(user_id: str):
@@ -278,3 +285,40 @@ async def update_avatar(user_id: str, avatar_data: dict = Body(...)):
     API endpoint để cập nhật avatar
     """
     return await UserController.update_avatar(user_id, avatar_data["avatar_url"])
+
+@app.delete("/orders/{order_id}")
+async def delete_order(order_id: str):
+    """
+    API endpoint để xóa đơn hàng
+    """
+    return await OrderController.delete_order(order_id)
+
+@app.delete("/users/{user_id}")
+async def delete_user(user_id: str):
+    """
+    API endpoint để xóa user
+    """
+    try:
+        if not ObjectId.is_valid(user_id):
+            raise HTTPException(status_code=400, detail="Invalid user ID")
+
+        # Kiểm tra user có tồn tại không
+        user = await mongodb.db["users"].find_one({"_id": ObjectId(user_id)})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Xóa user
+        result = await mongodb.db["users"].delete_one({"_id": ObjectId(user_id)})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Xóa các dữ liệu liên quan
+        await mongodb.db["orders"].delete_many({"user_id": user_id})
+        await mongodb.db["carts"].delete_many({"user_id": user_id})
+
+        return {"message": "User deleted successfully"}
+    except Exception as e:
+        print("Error deleting user:", str(e))
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=str(e))

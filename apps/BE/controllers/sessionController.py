@@ -1,4 +1,3 @@
-
 import secrets
 from bson import ObjectId
 from fastapi import HTTPException, Request, Response
@@ -11,34 +10,47 @@ class SessionManager:
         """
         Tạo session mới và lưu vào database.
         """
-        session_id = secrets.token_hex(32)
-        session_data = {
-            "session_id": session_id,
-            "user_id": user_id,
-        }
+        try:
+            session_id = secrets.token_hex(32)
+            session_data = {
+                "session_id": session_id,
+                "user_id": user_id,
+            }
 
-        # Lưu session vào MongoDB
-        await mongodb.db["sessions"].insert_one(session_data)
+            # Lưu session vào MongoDB
+            await mongodb.db["sessions"].insert_one(session_data)
 
-        # Gửi session_id trong cookie
-        response.set_cookie(key="session_id", value=session_id, httponly=True)
-        return session_id
+            # Gửi session_id trong cookie
+            response.set_cookie(
+                key="session_id",
+                value=session_id,
+                httponly=True,
+                samesite='lax',
+                secure=False,  # Set True if using HTTPS
+                domain="localhost",  # Quan trọng: phải match với domain của frontend
+                path="/"  # Cookie có hiệu lực cho toàn bộ domain
+            )
+            
+            print("Created session:", session_data)  # Debug
+            return session_id
+            
+        except Exception as e:
+            print("Error creating session:", str(e))
+            raise HTTPException(status_code=500, detail="Could not create session")
 
     @staticmethod
     async def get_session(request: Request):
-        """
-        Lấy thông tin session từ MongoDB.
-        """
-        session_id = request.cookies.get("session_id")
-        if not session_id:
-            raise HTTPException(status_code=401, detail="Not authenticated")
-
-        # Truy vấn session từ MongoDB
-        session = await mongodb.db["sessions"].find_one({"session_id": session_id})
-        if not session:
-            raise HTTPException(status_code=401, detail="Invalid session")
-
-        return session
+        try:
+            session_id = request.cookies.get("session_id")
+            if not session_id:
+                return None
+                
+            session = await mongodb.db["sessions"].find_one({"session_id": session_id})
+            return session
+            
+        except Exception as e:
+            print("Error in get_session:", str(e))  # Debug error
+            return None
 
     @staticmethod
     async def delete_session(request: Request):
@@ -53,16 +65,24 @@ class SessionManager:
 
     @staticmethod
     async def require_admin(request: Request):
-        """
-        Kiểm tra session và xác thực vai trò admin.
-        """
-        session = await SessionManager.get_session(request)
-        user = await mongodb.db["users"].find_one({"_id": ObjectId(session["user_id"])})
+        try:
+            # Debug: In ra cookies và headers
+            print("Cookies:", request.cookies)
+            print("Headers:", request.headers)
+            
+            session = await SessionManager.get_session(request)
+            print("Session:", session)  # Debug session
+            
+            if not session:
+                raise HTTPException(status_code=401, detail="Not authenticated")
 
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-
-        if user.get("role") != "admin":
-            raise HTTPException(status_code=403, detail="Admin privileges required")
-
-        return user
+            # Lấy thông tin user từ session
+            user = await mongodb.db["users"].find_one({"_id": ObjectId(session["user_id"])})
+            print("User:", user)  # Debug user info
+            
+            if not user or user.get("role") != "admin":
+                raise HTTPException(status_code=403, detail="Admin access required")
+                
+        except Exception as e:
+            print("Error in require_admin:", str(e))  # Debug error
+            raise HTTPException(status_code=401, detail="Authentication failed")
