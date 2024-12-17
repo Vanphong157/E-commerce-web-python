@@ -1,6 +1,7 @@
 from bson import ObjectId
-from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi import Body, Depends, FastAPI, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
+from BE.controllers.authController import AuthController
 from BE.controllers.categoriesController import CategoryController
 from BE.controllers.userController import UserController, SessionManager
 from BE.controllers.productsController import ProductController
