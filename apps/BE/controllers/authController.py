@@ -2,9 +2,6 @@ from fastapi import HTTPException
 from BE.database import mongodb
 from bson import ObjectId
 import bcrypt
-import jwt
-
-SECRET_KEY = "e0c83453f11624f5fc9f3f2c187c86671f3d02d6e8ee6d1a9b89c3f4d8e5a6b7" 
 
 class AuthController:
     @staticmethod
@@ -31,15 +28,7 @@ class AuthController:
         if not bcrypt.checkpw(credentials["password"].encode(), user["password"].encode()):
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
-        # Tạo JWT token
-        token = jwt.encode(
-            {"user_id": str(user["_id"])},
-            SECRET_KEY,
-            algorithm="HS256"
-        )
-
         return {
-            "token": token,
             "user_id": str(user["_id"]),
             "name": user["name"],
             "email": user["email"]

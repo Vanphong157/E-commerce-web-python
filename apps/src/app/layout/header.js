@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Col, Avatar, Input, Row, Badge, Dropdown, Button, Space } from "antd";
 import { SearchOutlined, ShoppingCartOutlined, UserOutlined, LogoutOutlined } from "@ant-design/icons";
 import Link from "next/link";
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 const styles = {
@@ -21,10 +22,16 @@ const styles = {
     padding: '0 15px'
   },
   logo: {
-    color: '#fff',
-    fontSize: '24px',
-    fontWeight: 'bold',
-    cursor: 'pointer'
+    display: 'flex',
+    alignItems: 'center',
+    width: '150px',
+    height: '40px',
+    position: 'relative',
+  },
+  logoWrapper: {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
   },
   searchContainer: {
     display: 'flex',
@@ -125,7 +132,19 @@ const HeaderState = () => {
         <Row align="middle" gutter={16}>
           <Col span={4}>
             <Link href="/" style={styles.logo}>
-              LOGO
+              <div style={styles.logoWrapper}>
+                <Image
+                  src="/logo.png"
+                  alt="Logo"
+                  fill
+                  sizes="150px"
+                  style={{ 
+                    objectFit: 'contain',
+                    objectPosition: 'left center'
+                  }}
+                  priority
+                />
+              </div>
             </Link>
           </Col>
           
