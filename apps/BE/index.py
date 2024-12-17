@@ -1,6 +1,7 @@
 from bson import ObjectId
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, Body
 from fastapi.security import OAuth2PasswordRequestForm
+from BE.controllers.authController import AuthController
 from BE.controllers.categoriesController import CategoryController
 from BE.controllers.userController import UserController, SessionManager
 from BE.controllers.productsController import ProductController
@@ -14,16 +15,9 @@ from BE.controllers.authController import AuthController
 
 app = FastAPI()
 
-
-app = FastAPI()
-
-origins = [
-    "http://localhost:3000",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["http://localhost:3000"],  # Thay đổi port nếu cần
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -159,7 +153,7 @@ async def get_order(order_id: str, request: Request):
     return await OrderController.get_order_by_id(order_id)
 
 @app.post("/orders")
-async def create_order(order_data: dict = Body(...)):
+async def create_order(order_data: dict, request:Request):
     """
     API endpoint để tạo đơn hàng mới
     """
