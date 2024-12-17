@@ -44,7 +44,7 @@ class UserController:
 
         # Tạo session và lưu session_id vào cookie
         session_id = await SessionManager.create_session(user_id=str(user["_id"]), response=response)
-        return {"message": "Login successful", "session_id": session_id}
+        return {"message": "Login successful", "session_id": session_id , "user_id": str(user["_id"])}
 
     @staticmethod
     async def logout(request: Request):
