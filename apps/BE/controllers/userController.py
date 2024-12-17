@@ -3,6 +3,7 @@ from fastapi import HTTPException, Request, Response
 from BE.controllers.sessionController import SessionManager
 from BE.database import mongodb
 import bcrypt
+from bson import ObjectId
 
 
 class UserController:
@@ -53,3 +54,108 @@ class UserController:
         """
         await SessionManager.delete_session(request)
         return {"message": "Logout successful"}
+
+    @staticmethod
+    async def get_user(user_id: str):
+        try:
+            if not ObjectId.is_valid(user_id):
+                raise HTTPException(status_code=400, detail="Invalid user ID")
+
+            user = await mongodb.db["users"].find_one({"_id": ObjectId(user_id)})
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+
+            # Loại bỏ password trước khi trả về
+            user.pop('password', None)
+            user["_id"] = str(user["_id"])
+            
+            return user
+
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    @staticmethod
+    async def update_user(user_id: str, user_data: dict):
+        try:
+            if not ObjectId.is_valid(user_id):
+                raise HTTPException(status_code=400, detail="Invalid user ID")
+
+            # Kiểm tra email đã tồn tại chưa (nếu có thay đổi email)
+            if "email" in user_data:
+                existing_user = await mongodb.db["users"].find_one({
+                    "email": user_data["email"],
+                    "_id": {"$ne": ObjectId(user_id)}
+                })
+                if existing_user:
+                    raise HTTPException(status_code=400, detail="Email already exists")
+
+            # Cập nhật thông tin user
+            result = await mongodb.db["users"].update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": user_data}
+            )
+
+            if result.modified_count == 0:
+                raise HTTPException(status_code=404, detail="User not found")
+
+            return {"message": "User updated successfully"}
+
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    @staticmethod
+    async def change_password(user_id: str, password_data: dict):
+        try:
+            if not ObjectId.is_valid(user_id):
+                raise HTTPException(status_code=400, detail="Invalid user ID")
+
+            user = await mongodb.db["users"].find_one({"_id": ObjectId(user_id)})
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+
+            # Kiểm tra mật khẩu cũ
+            if not bcrypt.checkpw(
+                password_data["old_password"].encode(),
+                user["password"].encode()
+            ):
+                raise HTTPException(status_code=400, detail="Invalid old password")
+
+            # Hash mật khẩu mới
+            salt = bcrypt.gensalt()
+            hashed_password = bcrypt.hashpw(
+                password_data["new_password"].encode(),
+                salt
+            ).decode()
+
+            # Cập nhật mật khẩu mới
+            result = await mongodb.db["users"].update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": {"password": hashed_password}}
+            )
+
+            if result.modified_count == 0:
+                raise HTTPException(status_code=404, detail="User not found")
+
+            return {"message": "Password changed successfully"}
+
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    @staticmethod
+    async def update_avatar(user_id: str, avatar_url: str):
+        try:
+            if not ObjectId.is_valid(user_id):
+                raise HTTPException(status_code=400, detail="Invalid user ID")
+
+            result = await mongodb.db["users"].update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": {"avatar": avatar_url}}
+            )
+
+            if result.modified_count == 0:
+                raise HTTPException(status_code=404, detail="User not found")
+
+            return {"message": "Avatar updated successfully"}
+
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
