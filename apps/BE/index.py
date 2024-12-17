@@ -151,11 +151,10 @@ async def get_orders():
     return await OrderController.get_orders()
 
 @app.get("/orders/{order_id}")
-async def get_order(order_id: str, request: Request):
+async def get_order(order_id: str):
     """
     API endpoint để lấy chi tiết một đơn hàng
     """
-    await SessionManager.require_admin(request)
     return await OrderController.get_order_by_id(order_id)
 
 @app.post("/orders")

@@ -54,6 +54,11 @@ class OrderController:
             if not order:
                 raise HTTPException(status_code=404, detail="Order not found")
 
+            # Chỉ cho phép admin hoặc chủ đơn hàng xem chi tiết
+            user_id = order.get("user_id")
+            if not user_id:
+                raise HTTPException(status_code=403, detail="Access denied")
+
             order["_id"] = str(order["_id"])
             return order
         except Exception as e:
