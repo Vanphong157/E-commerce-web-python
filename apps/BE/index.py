@@ -55,6 +55,7 @@ async def update_product(product_id: str, updated_data: dict, request: Request):
     """
     API endpoint để cập nhật sản phẩm (chỉ admin).
     """
+    
     await SessionManager.require_admin(request)
     return await ProductController.update_product(product_id, updated_data)
 
@@ -96,6 +97,7 @@ async def delete_category(category_id: str, request: Request):
     """
     API endpoint to delete a category
     """
+   
     await SessionManager.require_admin(request)
     return await CategoryController.delete_category(category_id)
 
