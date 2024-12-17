@@ -1,5 +1,5 @@
 from bson import ObjectId
-from fastapi import Body, Depends, FastAPI, HTTPException, Request, Response
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from BE.controllers.authController import AuthController
 from BE.controllers.categoriesController import CategoryController
@@ -11,17 +11,13 @@ from BE.controllers.ordersController import OrderController
 from BE.controllers.cartController import CartController
 from BE.controllers.checkoutController import CheckoutController
 from fastapi.middleware.cors import CORSMiddleware
-
+from BE.controllers.authController import AuthController
 
 app = FastAPI()
 
-origins = [
-    "http://localhost:3000",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["http://localhost:3000"],  # Thay đổi port nếu cần
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -165,17 +161,16 @@ async def create_order(order_data: dict, request:Request):
     return await OrderController.create_order(order_data)
 
 @app.put("/orders/{order_id}/status")
-async def update_order_status(order_id: str, status: str, request: Request):
+async def update_order_status(order_id: str, status_data: dict = Body(...)):
     """
     API endpoint để cập nhật trạng thái đơn hàng
     """
-    await SessionManager.require_admin(request)
-    return await OrderController.update_order_status(order_id, status)
+    return await OrderController.update_order_status(order_id, status_data["status"])
 
 @app.get("/users/{user_id}/orders")
 async def get_user_orders(user_id: str):
     """
-    API endpoint để lấy tất cả đơn hàng của một người dùng
+    API endpoint để lấy danh sách đơn hàng của user
     """
     
     return await OrderController.get_user_orders(user_id)
@@ -188,11 +183,11 @@ async def get_cart(user_id: str):
     return await CartController.get_cart(user_id)
 
 @app.post("/cart/{user_id}/items")
-async def add_to_cart(user_id: str, product_id: str, quantity: int):
+async def add_to_cart(user_id: str, product_data: dict = Body(...)):
     """
     API endpoint để thêm sản phẩm vào giỏ hàng
     """
-    return await CartController.add_to_cart(user_id, product_id, quantity)
+    return await CartController.add_to_cart(user_id, product_data)
 
 @app.put("/cart/{user_id}/items/{product_id}")
 async def update_cart_item(user_id: str, product_id: str, quantity: int):
