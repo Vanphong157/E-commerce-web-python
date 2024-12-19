@@ -3,29 +3,45 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Card, message, Tabs } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import axios from '../../config/axios.config';
 import { useRouter } from 'next/navigation';
+import Cookies from 'js-cookie';
 
 const { TabPane } = Tabs;
 
 const AuthComponent = () => {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-
   const onFinishLogin = async (values) => {
     try {
       setLoading(true);
-      const response = await axios.post('http://127.0.0.1:8000/auth/login', values);
+      const response = await axios.post('/login', values);
+      console.log('Login response:', response.data);
       
-      if (response.data.user_id) {
-        localStorage.setItem('user_id', response.data.user_id);
-        localStorage.setItem('token', response.data.token);
-        message.success('Đăng nhập thành công');
+      // Lấy dữ liệu từ response
+      const { user_id, username, role, session_id } = response.data;
+      
+      // Lưu thông tin vào localStorage
+      localStorage.setItem('user_id', user_id);
+      localStorage.setItem('isAdmin', role === 'admin');
+      localStorage.setItem('role', role);
+      localStorage.setItem('token', session_id); // Sử dụng session_id làm token
+
+      message.success('Đăng nhập thành công');
+      
+      // Lưu vào cookie
+      Cookies.set('token', session_id);
+      Cookies.set('isAdmin', role === 'admin');
+
+      // Điều hướng dựa trên role
+      if (role === 'admin') {
+        router.push('/admin');
+      } else {
         router.push('/');
       }
     } catch (error) {
       console.error('Login error:', error);
-      message.error('Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+      message.error('Đăng nhập thất bại');
     } finally {
       setLoading(false);
     }
@@ -34,7 +50,7 @@ const AuthComponent = () => {
   const onFinishRegister = async (values) => {
     try {
       setLoading(true);
-      const response = await axios.post('http://127.0.0.1:8000/auth/register', values);
+      const response = await axios.post('/signup', values);
       
       if (response.status === 200) {
         message.success('Đăng ký thành công. Vui lòng đăng nhập.');
@@ -64,38 +80,21 @@ const AuthComponent = () => {
               layout="vertical"
             >
               <Form.Item
-                name="email"
-                rules={[
-                  { required: true, message: 'Vui lòng nhập email!' },
-                  { type: 'email', message: 'Email không hợp lệ!' }
-                ]}
+                name="username"
+                rules={[{ required: true, message: 'Vui lòng nhập username!' }]}
               >
-                <Input 
-                  prefix={<MailOutlined />} 
-                  placeholder="Email" 
-                  size="large"
-                />
+                <Input prefix={<UserOutlined />} placeholder="Username" />
               </Form.Item>
 
               <Form.Item
                 name="password"
                 rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
               >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder="Mật khẩu"
-                  size="large"
-                />
+                <Input.Password prefix={<LockOutlined />} placeholder="Mật khẩu" />
               </Form.Item>
 
               <Form.Item>
-                <Button 
-                  type="primary" 
-                  htmlType="submit" 
-                  block 
-                  size="large"
-                  loading={loading}
-                >
+                <Button type="primary" htmlType="submit" loading={loading} block>
                   Đăng nhập
                 </Button>
               </Form.Item>
@@ -109,14 +108,10 @@ const AuthComponent = () => {
               layout="vertical"
             >
               <Form.Item
-                name="name"
-                rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}
+                name="username"
+                rules={[{ required: true, message: 'Vui lòng nhập username!' }]}
               >
-                <Input 
-                  prefix={<UserOutlined />} 
-                  placeholder="Họ tên" 
-                  size="large"
-                />
+                <Input prefix={<UserOutlined />} placeholder="Username" />
               </Form.Item>
 
               <Form.Item
@@ -126,71 +121,25 @@ const AuthComponent = () => {
                   { type: 'email', message: 'Email không hợp lệ!' }
                 ]}
               >
-                <Input 
-                  prefix={<MailOutlined />} 
-                  placeholder="Email" 
-                  size="large"
-                />
-              </Form.Item>
-
-              <Form.Item
-                name="phone"
-                rules={[
-                  { required: true, message: 'Vui lòng nhập số điện thoại!' },
-                  { pattern: /^[0-9]{10}$/, message: 'Số điện thoại không hợp lệ!' }
-                ]}
-              >
-                <Input 
-                  prefix={<PhoneOutlined />} 
-                  placeholder="Số điện thoại" 
-                  size="large"
-                />
+                <Input prefix={<MailOutlined />} placeholder="Email" />
               </Form.Item>
 
               <Form.Item
                 name="password"
-                rules={[
-                  { required: true, message: 'Vui lòng nhập mật khẩu!' },
-                  { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' }
-                ]}
+                rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
               >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder="Mật khẩu"
-                  size="large"
-                />
+                <Input.Password prefix={<LockOutlined />} placeholder="Mật khẩu" />
               </Form.Item>
 
               <Form.Item
-                name="confirm"
-                dependencies={['password']}
-                rules={[
-                  { required: true, message: 'Vui lòng xác nhận mật khẩu!' },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      if (!value || getFieldValue('password') === value) {
-                        return Promise.resolve();
-                      }
-                      return Promise.reject(new Error('Mật khẩu xác nhận không khớp!'));
-                    },
-                  }),
-                ]}
+                name="phone"
+                rules={[{ required: true, message: 'Vui lòng nhập số điện thoại!' }]}
               >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder="Xác nhận mật khẩu"
-                  size="large"
-                />
+                <Input prefix={<PhoneOutlined />} placeholder="Số điện thoại" />
               </Form.Item>
 
               <Form.Item>
-                <Button 
-                  type="primary" 
-                  htmlType="submit" 
-                  block 
-                  size="large"
-                  loading={loading}
-                >
+                <Button type="primary" htmlType="submit" loading={loading} block>
                   Đăng ký
                 </Button>
               </Form.Item>

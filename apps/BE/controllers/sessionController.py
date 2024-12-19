@@ -1,4 +1,3 @@
-
 import secrets
 from bson import ObjectId
 from fastapi import HTTPException, Request, Response
@@ -11,19 +10,47 @@ class SessionManager:
         """
         Tạo session mới và lưu vào database.
         """
-        session_id = secrets.token_hex(32)
-        session_data = {
-            "session_id": session_id,
-            "user_id": user_id,
-        }
+        try:
+            session_id = secrets.token_hex(32)
+            session_data = {
+                "session_id": session_id,
+                "user_id": user_id,
+            }
 
-        # Lưu session vào MongoDB
-        await mongodb.db["sessions"].insert_one(session_data)
+            # Lưu session vào MongoDB
+            await mongodb.db["sessions"].insert_one(session_data)
 
-        # Gửi session_id trong cookie
-        response.set_cookie(key="session_id", value=session_id, httponly=True)
-        return session_id
+            # Gửi session_id trong cookie
+            response.set_cookie(
+                key="session_id",
+                value=session_id,
+                httponly=True,
+                samesite='lax',
+                secure=False,  # Set True if using HTTPS
+                domain="localhost",  # Quan trọng: phải match với domain của frontend
+                path="/"  # Cookie có hiệu lực cho toàn bộ domain
+            )
+            
+            print("Created session:", session_data)  # Debug
+            return session_id
+            
+        except Exception as e:
+            print("Error creating session:", str(e))
+            raise HTTPException(status_code=500, detail="Could not create session")
 
+    @staticmethod
+    async def get_session(request: Request):
+        try:
+            session_id = request.cookies.get("session_id")
+            if not session_id:
+                return None
+                
+            session = await mongodb.db["sessions"].find_one({"session_id": session_id})
+            return session
+            
+        except Exception as e:
+            print("Error in get_session:", str(e))  # Debug error
+            return None
 
     @staticmethod
     async def delete_session(request: Request):

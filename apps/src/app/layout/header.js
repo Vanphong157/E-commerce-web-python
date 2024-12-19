@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Col, Avatar, Input, Row, Badge, Dropdown, Button, Space } from "antd";
-import { SearchOutlined, ShoppingCartOutlined, UserOutlined, LogoutOutlined } from "@ant-design/icons";
+import { Col, Avatar, Input, Row, Badge, Dropdown, Button, Space, Menu } from "antd";
+import { SearchOutlined, ShoppingCartOutlined, UserOutlined, LogoutOutlined, DashboardOutlined } from "@ant-design/icons";
 import Link from "next/link";
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -74,22 +74,28 @@ const HeaderState = () => {
   const [cartCount, setCartCount] = useState(0);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
 
+  // Kiểm tra đăng nhập và quyền admin
   useEffect(() => {
-    // Kiểm tra đăng nhập
     const user_id = localStorage.getItem('user_id');
     const name = localStorage.getItem('name');
+    const adminStatus = localStorage.getItem('isAdmin') === 'true';
+
     if (user_id) {
       setIsLoggedIn(true);
       setUserName(name || 'User');
     }
+    
+    setIsAdmin(adminStatus);
+  }, []);
 
-    // Cập nhật số lượng giỏ hàng
+  // Xử lý giỏ hàng riêng
+  useEffect(() => {
     const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
     setCartCount(cartItems.length);
 
-    // Lắng nghe sự kiện cập nhật giỏ hàng
     const handleCartUpdate = (event) => {
       const { cartItems } = event.detail;
       setCartCount(cartItems.length);
@@ -103,7 +109,16 @@ const HeaderState = () => {
     localStorage.removeItem('user_id');
     localStorage.removeItem('token');
     localStorage.removeItem('name');
+    localStorage.removeItem('isAdmin');
+    localStorage.removeItem('role');
+    localStorage.removeItem('email');
+    
+    // Xóa cookies
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+    document.cookie = 'isAdmin=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+    
     setIsLoggedIn(false);
+    setIsAdmin(false);
     router.push('/');
   };
 
@@ -113,13 +128,19 @@ const HeaderState = () => {
       label: <Link href="/personal">Tài khoản của tôi</Link>,
       icon: <UserOutlined />
     },
-    {
+    // Chỉ hiển thị menu admin nếu user là admin
+    ...(isAdmin ? [{
       key: '2',
+      label: <Link href="/admin">Quản trị</Link>,
+      icon: <DashboardOutlined />
+    }] : []),
+    {
+      key: '3',
       label: <Link href="/order">Đơn hàng của tôi</Link>,
       icon: <UserOutlined />
     },
     {
-      key: '3',
+      key: '4',
       label: <span onClick={handleLogout}>Đăng xuất</span>,
       icon: <LogoutOutlined />,
       danger: true
