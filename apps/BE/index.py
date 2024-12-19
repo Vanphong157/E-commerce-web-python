@@ -1,6 +1,7 @@
 from bson import ObjectId
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, Body
 from fastapi.security import OAuth2PasswordRequestForm
+from BE.controllers.authController import AuthController
 from BE.controllers.categoriesController import CategoryController
 from BE.controllers.userController import UserController, SessionManager
 from BE.controllers.productsController import ProductController
@@ -20,7 +21,7 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["http://localhost:3000"],  # Thay đổi port nếu cần
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -58,6 +59,8 @@ async def update_product(product_id: str, updated_data: dict):
     """
     API endpoint để cập nhật sản phẩm.
     """
+    
+    await SessionManager.require_admin(request)
     return await ProductController.update_product(product_id, updated_data)
 
 @app.delete("/products/{product_id}")
@@ -96,6 +99,8 @@ async def delete_category(category_id: str):
     """
     API endpoint to delete a category
     """
+   
+    await SessionManager.require_admin(request)
     return await CategoryController.delete_category(category_id)
 
 @app.post("/signup")

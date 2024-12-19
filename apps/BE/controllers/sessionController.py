@@ -64,25 +64,43 @@ class SessionManager:
         await mongodb.db["sessions"].delete_one({"session_id": session_id})
 
     @staticmethod
-    async def require_admin(request: Request):
-        try:
-            # Debug: In ra cookies và headers
-            print("Cookies:", request.cookies)
-            print("Headers:", request.headers)
-            
-            session = await SessionManager.get_session(request)
-            print("Session:", session)  # Debug session
-            
-            if not session:
-                raise HTTPException(status_code=401, detail="Not authenticated")
+    async def get_session(request: Request):
+        """
+        Lấy session_id từ Authorization header hoặc cookies.
+        """
+        auth_header = request.headers.get("Authorization")
+        session_id = None
 
-            # Lấy thông tin user từ session
-            user = await mongodb.db["users"].find_one({"_id": ObjectId(session["user_id"])})
-            print("User:", user)  # Debug user info
-            
-            if not user or user.get("role") != "admin":
-                raise HTTPException(status_code=403, detail="Admin access required")
-                
-        except Exception as e:
-            print("Error in require_admin:", str(e))  # Debug error
-            raise HTTPException(status_code=401, detail="Authentication failed")
+        if auth_header and auth_header.startswith("Bearer "):
+            session_id = auth_header.split(" ")[1]
+        else:
+            session_id = request.cookies.get("session_id")
+
+        if not session_id:
+            raise HTTPException(status_code=401, detail="Session ID is missing")
+
+        # Kiểm tra session trong database
+        session = await mongodb.db["sessions"].find_one({"session_id": session_id})
+        if not session:
+            raise HTTPException(status_code=401, detail="Invalid session ID")
+
+        return session
+
+    @staticmethod
+    async def require_admin(request: Request):
+        """
+        Kiểm tra quyền admin.
+        """
+        session = await SessionManager.get_session(request)
+        user_id = session.get("user_id")
+
+        # Lấy thông tin người dùng từ database
+        user = await mongodb.db["users"].find_one({"_id": ObjectId(user_id)})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Kiểm tra role của user
+        if user.get("role") != "admin":
+            raise HTTPException(status_code=403, detail="Admin privileges required")
+
+        return user
