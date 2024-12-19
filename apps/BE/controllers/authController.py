@@ -52,18 +52,14 @@ class AuthController:
             # Tạo token
             token = AuthController.create_token(user)
 
-            # Đảm bảo tất cả các trường đều được trả về
-            response_data = {
+            return {
                 "user_id": str(user["_id"]),
-                "name": user.get("name", ""),
+                "username": user["username"],
                 "email": user["email"],
                 "role": user.get("role", "user"),
                 "isAdmin": user.get("role") == "admin",
                 "token": token
             }
-            
-            print("Login response:", response_data)  # Debug log
-            return response_data
 
         except Exception as e:
             print("Login error:", str(e))  # Debug log

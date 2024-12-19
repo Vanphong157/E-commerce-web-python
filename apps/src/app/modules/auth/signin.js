@@ -5,31 +5,34 @@ import { Form, Input, Button, Card, message, Tabs } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import axios from '../../config/axios.config';
 import { useRouter } from 'next/navigation';
+import Cookies from 'js-cookie';
 
 const { TabPane } = Tabs;
 
 const AuthComponent = () => {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-
   const onFinishLogin = async (values) => {
     try {
       setLoading(true);
       const response = await axios.post('/login', values);
       console.log('Login response:', response.data);
       
-      const { user_id, name, email, isAdmin, token, role } = response.data;
+      // Lấy dữ liệu từ response
+      const { user_id, username, role, session_id } = response.data;
       
       // Lưu thông tin vào localStorage
       localStorage.setItem('user_id', user_id);
-      localStorage.setItem('name', name || '');
-      localStorage.setItem('email', email || '');
-      localStorage.setItem('isAdmin', String(isAdmin));
-      localStorage.setItem('role', role || 'user');
-      localStorage.setItem('token', token || '');
+      localStorage.setItem('isAdmin', role === 'admin');
+      localStorage.setItem('role', role);
+      localStorage.setItem('token', session_id); // Sử dụng session_id làm token
 
       message.success('Đăng nhập thành công');
       
+      // Lưu vào cookie
+      Cookies.set('token', session_id);
+      Cookies.set('isAdmin', role === 'admin');
+
       // Điều hướng dựa trên role
       if (role === 'admin') {
         router.push('/admin');
